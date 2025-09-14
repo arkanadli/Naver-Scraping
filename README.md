@@ -1,21 +1,30 @@
+# 🛒 Naver Scraper
 
-⚙️ Setup Instructions
-Clone repository & install dependencies:
+Scraper sederhana untuk **Naver Shopping API** menggunakan Node.js + TypeScript. Dilengkapi strategi evasion agar bisa tetap jalan walau ada anti-bot.
 
-Bash
+---
 
+## ⚙️ Setup Instructions
+
+### 1. Clone repository & install dependencies
+
+```bash
 git clone https://github.com/<your-username>/naver-scraper.git
 cd naver-scraper
 npm install
-Install Playwright Chromium:
+```
 
-Bash
+### 2. Install Playwright Chromium
 
+```bash
 npx playwright install chromium
-Buat file .env di root direktori dengan isi berikut:
+```
 
-Ini, TOML
+### 3. Buat file `.env`
 
+Buat file `.env` di root direktori dengan isi berikut:
+
+```env
 PORT=3000
 
 # Rate limiting
@@ -28,104 +37,168 @@ RETRY=1
 PROXY_ENABLED=false
 PW_USE_PROXY=false
 # PROXY_URLS=http://user:pass@host:port
-▶️ Run/Test Instructions
-Jalankan server:
+```
 
-Bash
+---
 
+## ▶️ Run/Test Instructions
+
+### 1. Jalankan server
+
+```bash
 npm run dev
+```
+
 Output normal yang akan terlihat di konsol:
 
-C#
-
+```
 [INFO] Seeding session cookies via Playwright ...
 [INFO] Session cookies seeded.
 [INFO] Server on :3000
-Test API dengan curl:
+```
 
-Bash
+### 2. Test API dengan `curl`
 
+```bash
 # Contoh dengan productUrl
 curl "http://localhost:3000/naver?productUrl=https://smartstore.naver.com/.../products/8768399445"
-Atau lakukan load test dengan autocannon:
+```
 
-Bash
+### 3. Load test dengan `autocannon`
 
+```bash
 autocannon -c 3 -d 30 "http://localhost:3000/naver?url=<encoded-url>"
-🔒 Scraper Explanation
-Proyek ini menggunakan strategi fallback bertingkat untuk menghindari deteksi dan pemblokiran, memastikan keandalan scraping.
+```
 
-Undici (default HTTP client):
+---
 
-Digunakan sebagai metode utama karena kecepatannya.
+## 🔒 Scraper Explanation
 
-Fallback Playwright Request API:
+Proyek ini menggunakan strategi **fallback** bertingkat untuk menghindari deteksi dan pemblokiran, memastikan keandalan scraping.
 
-Jika permintaan awal dengan Undici diblokir (misalnya, mendapat kode status 418 atau 403), scraper akan beralih ke metode ini.
+### Strategi Fallback
 
-In-page fetch dengan Playwright:
+1. **🚀 Undici (default HTTP client)**
+   - Digunakan sebagai metode utama karena kecepatannya
 
-Metode terkuat untuk menghindari deteksi. Permintaan dijalankan langsung dari dalam browser context, sehingga terlihat seperti permintaan natural dari Naver itu sendiri (same-origin).
+2. **🔄 Fallback Playwright Request API**
+   - Jika permintaan awal dengan Undici diblokir (status 418 atau 403), scraper beralih ke metode ini
 
-Diagram Alur Fallback:
+3. **🎭 In-page fetch dengan Playwright**
+   - Metode terkuat untuk menghindari deteksi
+   - Permintaan dijalankan dari dalam browser context
+   - Terlihat seperti permintaan natural dari Naver (same-origin)
 
-Proxy Support:
+### Diagram Alur Fallback
 
-Mengimplementasikan 
+```
+Undici Request
+      ↓
+   Berhasil? ────────────→ Return Data
+      ↓ Tidak
+Playwright Request API
+      ↓
+   Berhasil? ────────────→ Return Data
+      ↓ Tidak
+In-page Fetch (Playwright)
+      ↓
+   Return Data
+```
 
-rotasi IP dan Fingerprints untuk menghindari deteksi. Anda dapat mengaktifkan rotasi proxy dengan mengisi variabel 
+### 🌐 Proxy Support
 
-PROXY_URLS di file .env untuk mengurangi kemungkinan blokir.
+- Mengimplementasikan **rotasi IP** dan **Fingerprints** untuk menghindari deteksi
+- Aktifkan dengan mengisi `PROXY_URLS` di file `.env`
+- Mengurangi kemungkinan pemblokiran IP
 
-Rate Limiting & Retry:
+### ⏱️ Rate Limiting & Retry
 
-Mengimplementasikan 
+- **Request throttling** dengan **random delays**
+- **Backoff** dan **jitter delay** acak antar permintaan
+- Meniru perilaku manusia untuk mencegah deteksi bot
 
-request throttling dan random delays. Menggunakan 
+---
 
-backoff dan jitter delay acak antar permintaan untuk meniru perilaku manusia, mencegah "banjir" permintaan yang mencurigakan.
+## 📌 Example API Usage
 
-📌 Example API Usage
-1. By productUrl
-Ambil data produk langsung dari URL halaman produk Naver.
+### 1. By `productUrl`
 
-Bash
+Ambil data produk langsung dari URL halaman produk Naver:
 
+```bash
 curl "http://localhost:3000/naver?productUrl=https://smartstore.naver.com/.../products/8768399445"
-2. By url (encoded)
-Ambil data dari URL API paged-composite-cards yang sudah di-encode.
+```
 
-PowerShell
+### 2. By `url` (encoded)
 
+Ambil data dari URL API `paged-composite-cards` yang sudah di-encode:
+
+```powershell
 $inner = "https://search.shopping.naver.com/ns/v1/search/paged-composite-cards?cursor=1&pageSize=50&query=airpods"
 $enc = [System.Uri]::EscapeDataString($inner)
 curl.exe "http://localhost:3000/naver?url=$enc"
-Response (contoh singkat):
-JSON
+```
 
+### Response Example
+
+```json
 {
   "ok": true,
   "data": {
     "paging": { "next": "cursor=2" },
-    "items": [ { "id": "123", "name": "AirPods Pro", "price": 249000 }, ... ]
+    "items": [
+      {
+        "id": "123",
+        "name": "AirPods Pro",
+        "price": 249000
+      }
+    ]
   }
 }
-☁️ Hosting
-Ikuti langkah-langkah berikut untuk hosting API menggunakan ngrok agar dapat diakses publik:
+```
 
-Instal ngrok:
+---
 
-Bash
+## ☁️ Hosting
 
+Ikuti langkah-langkah berikut untuk hosting API menggunakan **ngrok** agar dapat diakses publik:
+
+### 1. Install ngrok
+
+```bash
 npm install -g ngrok
-Jalankan API:
-Pastikan server API kamu sudah berjalan dengan npm run dev di terminal pertama.
+```
 
-Buat tunnel ngrok:
-Buka terminal baru dan jalankan perintah ini, sesuaikan dengan PORT di file .env kamu:
+### 2. Jalankan API
 
-Bash
+Pastikan server API sudah berjalan dengan `npm run dev` di terminal pertama.
 
+### 3. Buat tunnel ngrok
+
+Buka terminal baru dan jalankan (sesuaikan dengan `PORT` di `.env`):
+
+```bash
 ngrok http 3000
-Dapatkan URL:
-Ngrok akan memberikan URL publik seperti https://<random-id>.ngrok.io. Gunakan URL ini untuk menguji API dari mana saja.
+```
+
+### 4. Dapatkan URL
+
+Ngrok akan memberikan URL publik seperti `https://<random-id>.ngrok.io`. Gunakan URL ini untuk menguji API dari mana saja.
+
+---
+
+## 🎯 Features
+
+- ✅ Multiple fallback strategies untuk reliability
+- ✅ Anti-bot evasion dengan browser automation  
+- ✅ Rate limiting dan request throttling
+- ✅ Proxy rotation support
+- ✅ TypeScript untuk type safety
+- ✅ Easy deployment dengan ngrok
+- ✅ Comprehensive error handling
+
+---
+
+## 📝 License
+
+MIT License - silakan gunakan untuk keperluan pembelajaran dan development.
